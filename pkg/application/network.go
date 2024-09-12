@@ -42,6 +42,12 @@ func (c *Compose) CreateDefaultNetwork(nettype string) error {
 		network.Config = map[string]string{}
 	}
 
+	n, _, _ := client.GetNetwork(resource.name)
+	if n != nil && n.Name == network.Name && n.Type == nettype {
+		slog.Info("Network found", slog.String("network", resource.name))
+		return nil
+	}
+
 	err = client.CreateNetwork(network)
 	if err != nil {
 		return err
