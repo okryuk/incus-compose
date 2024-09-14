@@ -5,18 +5,21 @@ package application
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/gosimple/slug"
 	cliconfig "github.com/lxc/incus/v6/shared/cliconfig"
 )
 
-func BuildDirect(p *types.Project, conf *cliconfig.Config) (*Compose, error) {
+func BuildDirect(p *types.Project, conf *cliconfig.Config, dryRun bool, log *slog.Logger) (*Compose, error) {
 	compose := &Compose{}
 	compose.ComposeProject = p
 	compose.Name = p.Name
 	compose.Project = "default"
 	compose.conf = conf
+	compose.DryRun = dryRun
+	compose.Log = &logger{log}
 
 	// parse extensions
 	for k, v := range p.Extensions {

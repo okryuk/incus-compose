@@ -60,6 +60,10 @@ var cwd string
 var project *dockercompose.Project
 var app *application.Compose
 
+var log *slog.Logger
+
+const levelDryRun = slog.Level(-1)
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use: "incus-compose",
@@ -136,7 +140,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		app, err = application.BuildDirect(project, conf)
+		app, err = application.BuildDirect(project, conf, dryRun, log)
 		if err != nil {
 			return err
 		}
@@ -189,22 +193,38 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 
 }
-func globalPreRunHook(_ *cobra.Command, _ []string) {
 
+func globalPreRunHook(_ *cobra.Command, _ []string) {
 	// set up logging
-	slog.SetDefault(slog.New(
+	log = slog.New(
 		tint.NewHandler(os.Stderr, &tint.Options{
 			Level:      logLevel,
 			TimeFormat: time.Kitchen,
+			ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
+				if attr.Key == slog.LevelKey {
+					level := attr.Value.Any().(slog.Level)
+					if level == levelDryRun {
+						ansiReset := "\033[0m"
+						ansiLightBlue := "\u001b[36m"
+						val := fmt.Sprintf("%s%s%s", ansiLightBlue, "DRY-RUN =>", ansiReset)
+						attr.Value = slog.StringValue(val)
+					}
+				}
+				return attr
+			},
 		}),
-	))
-	if debug {
-		logLevel.Set(slog.LevelDebug)
-		slog.Debug("Verbose logging")
+	)
+	slog.SetDefault(log)
+	if dryRun {
+		logLevel.Set(levelDryRun)
 	} else {
 		logLevel.Set(getLogLevelFromEnv())
 	}
 
+	if debug {
+		logLevel.Set(slog.LevelDebug)
+		slog.Debug("Verbose logging")
+	}
 }
 
 func getLogLevelFromEnv() slog.Level {

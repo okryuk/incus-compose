@@ -15,6 +15,8 @@ type Compose struct {
 	Dag            graph.Graph[string, string] `yaml:"-"`
 	ComposeProject *types.Project              `yaml:"-"`
 	SecretsFiles   map[string]SecretsFile      `yaml:"secretsfiles,omitempty"`
+	DryRun         bool                        `yaml:"dryrun,omitempty"`
+	Log            *logger                     `yaml:"-"`
 	conf           *config.Config
 }
 
