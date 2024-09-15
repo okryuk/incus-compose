@@ -57,6 +57,7 @@ var logLevel = new(slog.LevelVar) // Info by default
 var timeout int
 var dryRun bool
 var cwd string
+var silent bool
 var project *dockercompose.Project
 var app *application.Compose
 
@@ -186,6 +187,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cwd, "cwd", "", "change working directory")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "print commands that would be executed without running them")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "verbose", "d", false, "verbose logging")
+	rootCmd.PersistentFlags().BoolVar(&silent, "silent", false, "set logging level to warnings and errors only")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -224,6 +226,10 @@ func globalPreRunHook(_ *cobra.Command, _ []string) {
 	if debug {
 		logLevel.Set(slog.LevelDebug)
 		slog.Debug("Verbose logging")
+	}
+	if silent {
+		logLevel.Set(slog.LevelWarn)
+		slog.Debug("Silent logging")
 	}
 }
 
