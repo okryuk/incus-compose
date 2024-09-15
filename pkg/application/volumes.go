@@ -27,12 +27,16 @@ func (app *Compose) CreateVolumesForService(service string) error {
 		existingVolume, _ := app.showVolume(containerName, completeName, *vol)
 
 		if existingVolume != nil && completeName == existingVolume.Name {
+			app.Log.DryRun("volume found. does not need to be created", slog.String("volume", completeName))
 			slog.Info("Volume found", slog.String("volume", completeName))
 		} else {
 			fmt.Println("Creating volume", completeName, vol)
-			err := app.createVolume(completeName, *vol)
-			if err != nil {
-				return err
+			app.Log.DryRun("volume created", slog.String("volume", completeName))
+			if !app.DryRun {
+				err := app.createVolume(completeName, *vol)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -73,11 +77,15 @@ func (app *Compose) DeleteVolumesForService(service string) error {
 		existingVolume, _ := app.showVolume(containerName, completeName, *vol)
 
 		if existingVolume == nil || completeName != existingVolume.Name {
+			app.DryRunMessage(1, fmt.Sprintf("volume: %s can not be found. unable to delete", containerName))
 			slog.Info("Volume not found", slog.String("volume", completeName))
 		} else {
-			err := app.deleteVolume(completeName, *vol)
-			if err != nil {
-				return err
+			app.DryRunMessage(1, fmt.Sprintf("deleting the volume: %s", completeName))
+			if !app.DryRun {
+				err := app.deleteVolume(completeName, *vol)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

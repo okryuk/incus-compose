@@ -20,6 +20,7 @@ func (app *Compose) Up() error {
 	}
 
 	for _, service := range app.Order(true) {
+		app.Log.DryRun("setting up the container", slog.String("container", service))
 
 		err := app.InitContainerForService(service)
 		if err != nil {
@@ -70,6 +71,8 @@ func (app *Compose) Stop(stateful, force bool, timeout int) error {
 func (app *Compose) Down(force, volumes bool, timeout int) error {
 	for _, service := range app.Order(false) {
 
+		app.DryRunMessage(0, fmt.Sprintf("stopping service: %s", service))
+
 		err := app.StopContainerForService(service, false, force, timeout)
 		if err != nil {
 			return err
@@ -84,6 +87,7 @@ func (app *Compose) Down(force, volumes bool, timeout int) error {
 				return err
 			}
 		} else {
+			app.DryRunMessage(1, fmt.Sprintf("since --volumes flag is not set for service: %s, volumes will not be deleted", service))
 			vols, err := app.ListVolumesForService(service)
 			if err != nil {
 				return err

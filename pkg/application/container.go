@@ -32,11 +32,15 @@ func (app *Compose) RemoveContainerForService(service string, force bool) error 
 
 	inst, _, _ := d.GetInstance(containerName)
 	if inst != nil && inst.Name == containerName {
-		err = app.removeInstance(containerName, force)
-		if err != nil {
-			return err
+		app.DryRunMessage(1, fmt.Sprintf("removing container: %s", containerName))
+		if !app.DryRun {
+			err = app.removeInstance(containerName, force)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
+		app.DryRunMessage(1, fmt.Sprintf("container: %s is not located. nothing to remove", containerName))
 		slog.Info("Instance not found", slog.String("instance", service))
 	}
 
@@ -59,11 +63,15 @@ func (app *Compose) StopContainerForService(service string, stateful, force bool
 
 	inst, _, _ := d.GetInstance(containerName)
 	if inst != nil && inst.Name == containerName && inst.Status == "Running" {
-		err = app.updateInstanceState(containerName, "stop", timeout, force, stateful)
-		if err != nil {
-			return err
+		app.DryRunMessage(1, fmt.Sprintf("stopping container: %s", containerName))
+		if !app.DryRun {
+			err = app.updateInstanceState(containerName, "stop", timeout, force, stateful)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
+		app.DryRunMessage(1, fmt.Sprintf("container: %s is not running. nothing to stop", containerName))
 		slog.Info("Instance not found", slog.String("instance", containerName))
 	}
 
@@ -158,6 +166,7 @@ func (app *Compose) InitContainerForService(service string) error {
 
 	inst, _, _ := d.GetInstance(service)
 	if inst != nil && inst.Name == service {
+		app.Log.DryRun("container found. no setup required", slog.String("container", service))
 		slog.Info("Instance found", slog.String("instance", service))
 		return nil
 	}
@@ -369,15 +378,18 @@ func (app *Compose) InitContainerForService(service string) error {
 		instancePost.Type = api.InstanceType(imgInfo.Type)
 	}
 
-	op, err := d.CreateInstanceFromImage(imgRemote, *imgInfo, instancePost)
-	if err != nil {
-		return err
+	app.Log.DryRun("container setup and created", slog.String("container", service))
+	if !app.DryRun {
+		op, err := d.CreateInstanceFromImage(imgRemote, *imgInfo, instancePost)
+		if err != nil {
+			return err
+		}
+		err = op.Wait()
+		if err != nil {
+			return err
+		}
+		slog.Info("Created instance", slog.String("name", name))
 	}
-	err = op.Wait()
-	if err != nil {
-		return err
-	}
-	slog.Info("Created instance", slog.String("name", name))
 
 	return nil
 

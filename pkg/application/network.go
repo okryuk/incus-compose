@@ -16,6 +16,8 @@ func (c *Compose) DefaultNetworkName() string {
 
 // CreateDefaultNetwork creates the default network for a stack
 func (c *Compose) CreateDefaultNetwork(nettype string) error {
+	c.Log.DryRun("setting up the network", slog.String("nettype", nettype))
+
 	var stdinData api.NetworkPut
 	if nettype == "" {
 		nettype = "bridge"
@@ -44,13 +46,17 @@ func (c *Compose) CreateDefaultNetwork(nettype string) error {
 
 	n, _, _ := client.GetNetwork(resource.name)
 	if n != nil && n.Name == network.Name && n.Type == nettype {
+		c.Log.DryRun("network exists", slog.String("resource name", resource.name))
 		slog.Info("Network found", slog.String("network", resource.name))
 		return nil
 	}
 
-	err = client.CreateNetwork(network)
-	if err != nil {
-		return err
+	c.Log.DryRun("creating the network", slog.String("name", network.Name), slog.String("type", network.Type))
+	if !c.DryRun {
+		err = client.CreateNetwork(network)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Printf("Network %s created"+"\n", resource.name)
